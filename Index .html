@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Routine Tracker</title>
+  <link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#3b82f6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" href="./icon-192.png" sizes="192x192">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] },
+          boxShadow: {
+            soft: '0 12px 30px rgba(2, 6, 23, 0.12)',
+            glow: '0 12px 30px rgba(59, 130, 246, 0.18)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root{
+      --app-bg-1:#0b1220;
+      --app-bg-2:#070a12;
+      --card: rgba(255,255,255,.78);
+      --card-d: rgba(2,6,23,.62);
+      --stroke: rgba(148,163,184,.25);
+      --stroke-d: rgba(148,163,184,.18);
+      --text: #0b1220;
+      --text-d: #e5e7eb;
+      --muted: rgba(15,23,42,.62);
+      --muted-d: rgba(226,232,240,.62);
+    }
+    html, body { height: 100%; }
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      background:
+        radial-gradient(1200px 900px at 15% 0%, rgba(59,130,246,.24), transparent 55%),
+        radial-gradient(1000px 800px at 95% 10%, rgba(168,85,247,.22), transparent 55%),
+        radial-gradient(900px 700px at 70% 110%, rgba(34,197,94,.18), transparent 55%),
+        linear-gradient(180deg, var(--app-bg-1), var(--app-bg-2));
+      color: var(--text);
+      overflow-x: hidden;
+    }
+    .glass {
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .dark body { color: var(--text-d); }
+    .dark .glass {
+      background: var(--card-d);
+      border-color: var(--stroke-d);
+    }
+    .subtle-border { border: 1px solid rgba(148,163,184,.22); }
+    .dark .subtle-border { border-color: rgba(148,163,184,.16); }
+
+    .btn {
+      transition: transform .12s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s ease, opacity .2s ease;
+    }
+    .btn:active { transform: translateY(1px) scale(.99); }
+    .focus-ring:focus { outline: none; box-shadow: 0 0 0 4px rgba(59,130,246,.25); }
+    .dark .focus-ring:focus { box-shadow: 0 0 0 4px rgba(96,165,250,.25); }
+
+    .fade-in { animation: fadeIn .18s ease-out both; }
+    .slide-up { animation: slideUp .2s ease-out both; }
+    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
+
+    .scrollbar::-webkit-scrollbar { width: 10px; height: 10px; }
+    .scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.35); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+    .dark .scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.25); }
+    .scrollbar::-webkit-scrollbar-track { background: transparent; }
+
+    input[type="checkbox"].nice {
+      width: 18px; height: 18px;
+      appearance: none;
+      border-radius: 6px;
+      border: 1px solid rgba(148,163,184,.5);
+      background: rgba(255,255,255,.55);
+      display: inline-grid;
+      place-content: center;
+      transition: all .18s ease;
+    }
+    .dark input[type="checkbox"].nice{
+      background: rgba(2,6,23,.35);
+      border-color: rgba(148,163,184,.35);
+    }
+    input[type="checkbox"].nice:checked{
+      background: linear-gradient(135deg, rgba(59,130,246,1), rgba(168,85,247,1));
+      border-color: transparent;
+      box-shadow: 0 8px 20px rgba(59,130,246,.25);
+    }
+    input[type="checkbox"].nice:checked::after{
+      content: "";
+      width: 9px; height: 6px;
+      border-left: 2px solid white;
+      border-bottom: 2px solid white;
+      transform: rotate(-45deg);
+      margin-top: -1px;
+    }
+
+    .app-shell { min-height: 100dvh; }
+  </style>
+</head>
+<body class="antialiased">
+  <div id="app" class="app-shell">
+    <!-- Header -->
+    <header class="sticky top-0 z-40">
+      <div class="px-4 sm:px-6 pt-4">
+        <div class="glass shadow-soft rounded-2xl">
+          <div class="px-4 sm:px-5 py-4 flex items-center gap-3">
+            <button id="openDrawerBtn" class="btn lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 focus-ring" aria-label="Open routines">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-slate-900 dark:text-slate-100">
+                <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 shadow-glow"></div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <h1 class="text-base sm:text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100 truncate">Routine Tracker</h1>
+                    <span id="selectedRoutinePill" class="hidden sm:inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-medium subtle-border bg-white/40 dark:bg-slate-900/40 text-slate-800 dark:text-slate-200 truncate"></span>
+                  </div>
+                  <p id="todayLabel" class="text-xs sm:text-sm text-slate-700/70 dark:text-slate-300/70 truncate"></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button id="themeBtn" class="btn inline-flex items-center gap-2 h-10 px-3 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 focus-ring">
+                <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-slate-900 dark:text-slate-100">
+                  <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5 3.6 3.6M20.4 20.4 19 19M19 5l1.4-1.4M3.6 20.4 5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span class="hidden sm:inline text-sm font-medium text-slate-800 dark:text-slate-200">Theme</span>
+              </button>
+
+              <div class="hidden sm:flex items-center gap-2">
+                <button id="exportBtn" class="btn inline-flex items-center gap-2 h-10 px-3 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 focus-ring">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-slate-900 dark:text-slate-100">
+                    <path d="M12 3v10m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <span class="text-sm font-medium text-slate-800 dark:text-slate-200">Export</span>
+                </button>
+
+                <label class="btn inline-flex items-center gap-2 h-10 px-3 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 focus-ring cursor-pointer">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-slate-900 dark:text-slate-100">
+                    <path d="M12 21V11m0 0 4 4m-4-4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 10V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <span class="text-sm font-medium text-slate-800 dark:text-slate-200">Import</span>
+                  <input id="importFile" type="file" accept="application/json" class="hidden" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="px-4 sm:px-5 pb-4">
+            <div class="grid grid-cols-3 gap-2">
+              <button data-tab="today" class="tabBtn btn h-10 rounded-xl subtle-border bg-white/45 dark:bg-slate-900/45 text-sm font-semibold text-slate-900 dark:text-slate-100 focus-ring">Today</button>
+              <button data-tab="calendar" class="tabBtn btn h-10 rounded-xl subtle-border bg-white/25 dark:bg-slate-900/25 text-sm font-semibold text-slate-900/70 dark:text-slate-100/70 focus-ring">Calendar</button>
+              <button data-tab="insights" class="tabBtn btn h-10 rounded-xl subtle-border bg-white/25 dark:bg-slate-900/25 text-sm font-semibold text-slate-900/70 dark:text-slate-100/70 focus-ring">Insights</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Body -->
+    <main class="px-4 sm:px-6 py-4">
+      <div class="lg:grid lg:grid-cols-[320px_1fr] lg:gap-4 max-w-6xl mx-auto">
+        <!-- Sidebar (desktop) -->
+        <aside class="hidden lg:block">
+          <div class="glass shadow-soft rounded-2xl overflow-hidden">
+            <div class="px-5 py-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Routines</h2>
+                <p class="text-xs text-slate-700/70 dark:text-slate-300/70">Organize your day</p>
+              </div>
+              <button id="addRoutineBtnDesktop" class="btn inline-flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 text-white shadow-glow focus-ring" aria-label="Add routine">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="px-3 pb-3">
+              <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z" stroke="currentColor" stroke-width="2"/>
+                  <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <input id="routineSearch" class="w-full h-10 pl-10 pr-3 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-500 focus-ring" placeholder="Search routines..." />
+              </div>
+            </div>
+
+            <div id="routineList" class="px-3 pb-4 max-h-[calc(100vh-270px)] overflow-auto scrollbar"></div>
+
+            <div class="px-4 py-4 border-t border-slate-200/40 dark:border-slate-700/30">
+              <div class="grid grid-cols-2 gap-2">
+                <button id="exportBtn2" class="btn h-10 rounded-xl subtle-border bg-white/35 dark:bg-slate-900/35 text-sm font-semibold text-slate-800 dark:text-slate-200 focus-ring">Export</button>
+                <label class="btn h-10 rounded-xl subtle-border bg-white/35 dark:bg-slate-900/35 text-sm font-semibold text-slate-800 dark:text-slate-200 focus-ring cursor-pointer inline-flex items-center justify-center">
+                  Import
+                  <input id="importFile2" type="file" accept="application/json" class="hidden" />
+                </label>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Content -->
+        <section class="space-y-4">
+          <!-- Today Tab -->
+          <div id="tab-today" class="tabPanel space-y-4">
+            <div class="glass shadow-soft rounded-2xl overflow-hidden">
+              <div class="px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="min-w-0">
+                  <h2 id="routineTitle" class="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">—</h2>
+                  <p id="routineMeta" class="text-sm text-slate-700/70 dark:text-slate-300/70"></p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button id="markAllBtn" class="btn h-10 px-3 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 text-white shadow-glow focus-ring inline-flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="m20 7-11 11-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="text-sm font-semibold">Mark all</span>
+                  </button>
+                  <button id="resetTodayBtn" class="btn h-10 px-3 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-slate-800 dark:text-slate-200 focus-ring inline-flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-slate-900 dark:text-slate-100">
+                      <path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M21 3v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="text-sm font-semibold">Reset</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="px-5 pb-5">
+                <div class="grid sm:grid-cols-3 gap-3">
+                  <div class="rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 p-4">
+                    <div class="text-xs font-semibold text-slate-700/70 dark:text-slate-300/70">Today's progress</div>
+                    <div class="mt-2 flex items-end justify-between gap-3">
+                      <div>
+                        <div id="progressPct" class="text-2xl font-bold text-slate-900 dark:text-slate-100">0%</div>
+                        <div id="progressCount" class="text-xs text-slate-700/70 dark:text-slate-300/70">0/0 tasks</div>
+                      </div>
+                      <div class="w-20">
+                        <div class="h-2.5 rounded-full bg-slate-900/10 dark:bg-white/10 overflow-hidden">
+                          <div id="progressBar" class="h-full w-0 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all duration-300"></div>
+                        </div>
+                        <div id="scheduleHint" class="mt-2 text-[11px] text-slate-700/60 dark:text-slate-300/60"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 p-4">
+                    <div class="text-xs font-semibold text-slate-700/70 dark:text-slate-300/70">Streak</div>
+                    <div class="mt-2 flex items-end justify-between gap-3">
+                      <div>
+                        <div id="streakDays" class="text-2xl font-bold text-slate-900 dark:text-slate-100">0</div>
+                        <div class="text-xs text-slate-700/70 dark:text-slate-300/70">days</div>
+                      </div>
+                      <div class="text-right">
+                        <div id="bestStreak" class="text-sm font-semibold text-slate-900 dark:text-slate-100">Best: 0</div>
+                        <div class="text-[11px] text-slate-700/60 dark:text-slate-300/60">All tasks completed</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 p-4">
+                    <div class="text-xs font-semibold text-slate-700/70 dark:text-slate-300/70">Quick actions</div>
+                    <div class="mt-3 grid grid-cols-2 gap-2">
+                      <button id="addTaskBtn" class="btn h-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 text-white shadow-glow focus-ring text-sm font-semibold">Add task</button>
+                      <button id="editRoutineBtn" class="btn h-10 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-slate-800 dark:text-slate-200 focus-ring text-sm font-semibold">Routine settings</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tasks -->
+            <div class="glass shadow-soft rounded-2xl overflow-hidden">
+              <div class="px-5 py-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Tasks</h3>
+                  <p class="text-xs text-slate-700/70 dark:text-slate-300/70">Check off your routine for today</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button id="sortBtn" class="btn h-10 px-3 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-slate-800 dark:text-slate-200 focus-ring text-sm font-semibold inline-flex items-center gap-2" title="Sort tasks">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-slate-900 dark:text-slate-100">
+                      <path d="M11 5h10M11 9h7M11 13h4M4 17h17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M4 7v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                      <path d="m2.5 15 1.5 2 1.5-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="m2.5 9 1.5-2 1.5 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span id="sortLabel">Sort: Incomplete first</span>
+                  </button>
+                </div>
+              </div>
+
+              <div id="taskList" class="px-3 pb-4"></div>
+              <div id="emptyState" class="px-5 pb-6 hidden">
+                <div class="rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 p-5 text-center">
+                  <div class="mx-auto h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-violet-500/20 subtle-border flex items-center justify-center">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" class="text-slate-900 dark:text-slate-100">
+                      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <h4 class="mt-3 text-sm font-semibold text-slate-900 dark:text-slate-100">No tasks yet</h4>
+                  <p class="mt-1 text-xs text-slate-700/70 dark:text-slate-300/70">Add a task to start tracking your routine.</p>
+                  <button id="emptyAddTaskBtn" class="btn mt-4 inline-flex items-center justify-center h-10 px-4 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 text-white shadow-glow focus-ring text-sm font-semibold">Add your first task</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Calendar Tab -->
+          <div id="tab-calendar" class="tabPanel space-y-4 hidden">
+            <div class="glass shadow-soft rounded-2xl overflow-hidden">
+              <div class="px-5 py-4 flex items-center justify-between gap-2">
+                <div>
+                  <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Calendar</h2>
+                  <p class="text-sm text-slate-700/70 dark:text-slate-300/70">Track completion over time</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button id="calPrev" class="btn h-10 w-10 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 focus-ring" aria-label="Previous month">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-slate-900 dark:text-slate-100">
+                      <path d="M15 18 9 12l6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <div id="calLabel" class="px-3 h-10 inline-flex items-center rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-sm font-semibold text-slate-900 dark:text-slate-100 min-w-[160px] justify-center"></div>
+                  <button id="calNext" class="btn h-10 w-10 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 focus-ring" aria-label="Next month">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-slate-900 dark:text-slate-100">
+                      <path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="px-5 pb-5">
+                <div class="grid grid-cols-7 gap-2 text-[11px] font-semibold text-slate-700/70 dark:text-slate-300/70 mb-2">
+                  <div class="text-center">Mon</div><div class="text-center">Tue</div><div class="text-center">Wed</div><div class="text-center">Thu</div><div class="text-center">Fri</div><div class="text-center">Sat</div><div class="text-center">Sun</div>
+                </div>
+                <div id="calendarGrid" class="grid grid-cols-7 gap-2"></div>
+
+                <div class="mt-5 grid sm:grid-cols-3 gap-3">
+                  <div class="rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 p-4">
+                    <div class="text-xs font-semibold text-slate-700/70 dark:text-slate-300/70">Selected day</div>
+                    <div id="dayDetail" class="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">Pick a day</div>
+                    <div id="dayDetailSub" class="mt-1 text-xs text-slate-700/70 dark:text-slate-300/70"></div>
+                  </div>
+                  <div class="rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 p-4">
+                    <div class="text-xs font-semibold text-slate-700/70 dark:text-slate-300/70">This month</div>
+                    <div id="monthRate" class="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">0%</div>
+                    <div id="monthRateSub" class="text-xs text-slate-700/70 dark:text-slate-300/70">avg daily completion</div>
+                  </div>
+                  <div class="rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 p-4">
+                    <div class="text-xs font-semibold text-slate-700/70 dark:text-slate-300/70">Legend</div>
+                    <div class="mt-3 flex items-center gap-2 flex-wrap">
+                      <div class="h-3 w-3 rounded bg-slate-900/10 dark:bg-white/10 subtle-border"></div><div class="text-xs text-slate-700/70 dark:text-slate-300/70">0%</div>
+                      <div class="h-3 w-3 rounded bg-blue-500/35 subtle-border"></div><div class="text-xs text-slate-700/70 dark:text-slate-300/70">~50%</div>
+                      <div class="h-3 w-3 rounded bg-gradient-to-br from-blue-500 to-violet-500 subtle-border"></div><div class="text-xs text-slate-700/70 dark:text-slate-300/70">100%</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Insights Tab -->
+          <div id="tab-insights" class="tabPanel space-y-4 hidden">
+            <div class="glass shadow-soft rounded-2xl overflow-hidden">
+              <div class="px-5 py-4">
+                <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">Insights</h2>
+                <p class="text-sm text-slate-700/70 dark:text-slate-300/70">See how consistent you’ve been</p>
+              </div>
+
+              <div class="px-5 pb-5">
+                <div class="grid sm:grid-cols-3 gap-3">
+                  <div class="rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 p-4">
+                    <div class="text-xs font-semibold text-slate-700/70 dark:text-slate-300/70">Last 7 days</div>
+                    <div id="weekRate" class="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">0%</div>
+                    <div class="text-xs text-slate-700/70 dark:text-slate-300/70">average completion</div>
+                  </div>
+                  <div class="rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 p-4">
+                    <div class="text-xs font-semibold text-slate-700/70 dark:text-slate-300/70">Tasks done today</div>
+                    <div id="doneToday" class="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">0</div>
+                    <div id="doneTodaySub" class="text-xs text-slate-700/70 dark:text-slate-300/70">across this routine</div>
+                  </div>
+                  <div class="rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 p-4">
+                    <div class="text-xs font-semibold text-slate-700/70 dark:text-slate-300/70">Completion trend</div>
+                    <div class="mt-3 h-10 flex items-end gap-1" id="trendBars" aria-label="7-day trend bar chart"></div>
+                    <div class="mt-2 text-[11px] text-slate-700/60 dark:text-slate-300/60">Old → New</div>
+                  </div>
+                </div>
+
+                <div class="mt-4 rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 p-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <div class="text-sm font-semibold text-slate-900 dark:text-slate-100">Consistency tips</div>
+                      <div class="text-xs text-slate-700/70 dark:text-slate-300/70">Small changes that help you keep the streak.</div>
+                    </div>
+                    <button id="nudgeBtn" class="btn h-10 px-3 rounded-xl bg-gradient-to-br from-amber-500 to-rose-500 text-white shadow-glow focus-ring text-sm font-semibold">Get a tip</button>
+                  </div>
+                  <div id="tipBox" class="mt-3 text-sm text-slate-800 dark:text-slate-200"></div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Mobile quick add -->
+          <div class="lg:hidden">
+            <button id="fabAdd" class="btn fixed bottom-5 right-5 h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-500 to-violet-500 text-white shadow-glow focus-ring inline-flex items-center justify-center z-30" aria-label="Quick add">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Mobile Drawer -->
+    <div id="drawerOverlay" class="fixed inset-0 z-50 hidden">
+      <div class="absolute inset-0 bg-black/40 fade-in"></div>
+      <div class="absolute inset-y-0 left-0 w-[88%] max-w-[360px] glass shadow-soft rounded-r-2xl slide-up overflow-hidden">
+        <div class="px-5 py-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Routines</h2>
+            <p class="text-xs text-slate-700/70 dark:text-slate-300/70">Pick one to track</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="addRoutineBtnMobile" class="btn inline-flex items-center justify-center h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 text-white shadow-glow focus-ring" aria-label="Add routine">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <button id="closeDrawerBtn" class="btn inline-flex items-center justify-center h-10 w-10 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 focus-ring" aria-label="Close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-slate-900 dark:text-slate-100">
+                <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="px-5 pb-3">
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <input id="routineSearchMobile" class="w-full h-10 pl-10 pr-3 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-500 focus-ring" placeholder="Search routines..." />
+          </div>
+        </div>
+        <div id="routineListMobile" class="px-3 pb-4 max-h-[calc(100dvh-190px)] overflow-auto scrollbar"></div>
+      </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modalOverlay" class="fixed inset-0 z-[60] hidden">
+      <div class="absolute inset-0 bg-black/45 fade-in"></div>
+
+      <!-- Routine Modal -->
+      <div id="routineModal" class="absolute inset-x-0 top-10 sm:top-16 mx-auto max-w-xl px-4 hidden">
+        <div class="glass shadow-soft rounded-2xl overflow-hidden slide-up">
+          <div class="px-5 py-4 flex items-center justify-between gap-3">
+            <div>
+              <h3 id="routineModalTitle" class="text-base font-semibold text-slate-900 dark:text-slate-100">New routine</h3>
+              <p class="text-xs text-slate-700/70 dark:text-slate-300/70">Name it and set the schedule</p>
+            </div>
+            <button data-close-modal class="btn h-10 w-10 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 focus-ring inline-flex items-center justify-center" aria-label="Close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-slate-900 dark:text-slate-100">
+                <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+
+          <form id="routineForm" class="px-5 pb-5 space-y-4">
+            <div>
+              <label class="text-xs font-semibold text-slate-700/80 dark:text-slate-300/80">Routine name</label>
+              <input id="routineName" required maxlength="40" class="mt-2 w-full h-11 px-3 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-sm text-slate-900 dark:text-slate-100 focus-ring" placeholder="e.g., Morning routine" />
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs font-semibold text-slate-700/80 dark:text-slate-300/80">Color</label>
+                <div class="mt-2 flex items-center gap-2">
+                  <input id="routineColor" type="color" class="h-11 w-16 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 p-1" />
+                  <div class="text-xs text-slate-700/70 dark:text-slate-300/70">Used in the calendar and pills.</div>
+                </div>
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-slate-700/80 dark:text-slate-300/80">Goal</label>
+                <select id="routineGoal" class="mt-2 w-full h-11 px-3 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-sm text-slate-900 dark:text-slate-100 focus-ring">
+                  <option value="all">Complete all tasks</option>
+                  <option value="any">Do at least one task</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-slate-700/80 dark:text-slate-300/80">Schedule</label>
+              <div class="mt-2 flex flex-wrap gap-2" id="scheduleBtns"></div>
+              <p class="mt-2 text-[11px] text-slate-700/60 dark:text-slate-300/60">If today is not selected, tasks won’t count toward streaks.</p>
+            </div>
+
+            <div class="flex items-center justify-between gap-3">
+              <button type="button" id="deleteRoutineBtn" class="btn h-11 px-4 rounded-xl subtle-border bg-white/35 dark:bg-slate-900/35 text-rose-600 dark:text-rose-300 font-semibold focus-ring hidden">Delete routine</button>
+              <div class="ml-auto flex items-center gap-2">
+                <button type="button" data-close-modal class="btn h-11 px-4 rounded-xl subtle-border bg-white/35 dark:bg-slate-900/35 text-slate-800 dark:text-slate-200 font-semibold focus-ring">Cancel</button>
+                <button type="submit" class="btn h-11 px-4 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 text-white shadow-glow font-semibold focus-ring">Save</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Task Modal -->
+      <div id="taskModal" class="absolute inset-x-0 top-10 sm:top-16 mx-auto max-w-xl px-4 hidden">
+        <div class="glass shadow-soft rounded-2xl overflow-hidden slide-up">
+          <div class="px-5 py-4 flex items-center justify-between gap-3">
+            <div>
+              <h3 id="taskModalTitle" class="text-base font-semibold text-slate-900 dark:text-slate-100">New task</h3>
+              <p class="text-xs text-slate-700/70 dark:text-slate-300/70">Add something you want to do regularly</p>
+            </div>
+            <button data-close-modal class="btn h-10 w-10 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 focus-ring inline-flex items-center justify-center" aria-label="Close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-slate-900 dark:text-slate-100">
+                <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+
+          <form id="taskForm" class="px-5 pb-5 space-y-4">
+            <div>
+              <label class="text-xs font-semibold text-slate-700/80 dark:text-slate-300/80">Task title</label>
+              <input id="taskTitle" required maxlength="60" class="mt-2 w-full h-11 px-3 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-sm text-slate-900 dark:text-slate-100 focus-ring" placeholder="e.g., Drink water" />
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs font-semibold text-slate-700/80 dark:text-slate-300/80">Type</label>
+                <select id="taskType" class="mt-2 w-full h-11 px-3 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-sm text-slate-900 dark:text-slate-100 focus-ring">
+                  <option value="check">Checkbox</option>
+                  <option value="count">Counter</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-slate-700/80 dark:text-slate-300/80">Target (for counter)</label>
+                <input id="taskTarget" type="number" min="1" step="1" value="1" class="mt-2 w-full h-11 px-3 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-sm text-slate-900 dark:text-slate-100 focus-ring" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-slate-700/80 dark:text-slate-300/80">Notes (optional)</label>
+              <textarea id="taskNotes" rows="3" maxlength="200" class="mt-2 w-full px-3 py-2 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-sm text-slate-900 dark:text-slate-100 focus-ring" placeholder="Add a short cue, like “before coffee”"></textarea>
+            </div>
+
+            <div class="flex items-center justify-between gap-3">
+              <button type="button" id="deleteTaskBtn" class="btn h-11 px-4 rounded-xl subtle-border bg-white/35 dark:bg-slate-900/35 text-rose-600 dark:text-rose-300 font-semibold focus-ring hidden">Delete task</button>
+              <div class="ml-auto flex items-center gap-2">
+                <button type="button" data-close-modal class="btn h-11 px-4 rounded-xl subtle-border bg-white/35 dark:bg-slate-900/35 text-slate-800 dark:text-slate-200 font-semibold focus-ring">Cancel</button>
+                <button type="submit" class="btn h-11 px-4 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 text-white shadow-glow font-semibold focus-ring">Save</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[70] pointer-events-none">
+      <div id="toast" class="hidden pointer-events-auto fade-in">
+        <div class="glass shadow-soft rounded-2xl px-4 py-3 flex items-center gap-3">
+          <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500"></div>
+          <div class="min-w-0">
+            <div id="toastTitle" class="text-sm font-semibold text-slate-900 dark:text-slate-100">Saved</div>
+            <div id="toastMsg" class="text-xs text-slate-700/70 dark:text-slate-300/70">Your changes were saved.</div>
+          </div>
+          <button id="toastClose" class="btn h-9 w-9 rounded-xl subtle-border bg-white/35 dark:bg-slate-900/35 focus-ring inline-flex items-center justify-center text-slate-900 dark:text-slate-100" aria-label="Close toast">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logic -->
+  <script>
+    (() => {
+      const LS_KEY = 'routine_tracker_v1';
+      const LS_THEME = 'routine_tracker_theme_v1';
+
+      const $ = (sel, root=document) => root.querySelector(sel);
+      const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+      const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+      const state = {
+        data: null,
+        selectedRoutineId: null,
+        tab: 'today',
+        calendar: { year: null, month: null, selectedDate: null },
+        modal: { type: null, editId: null },
+        search: '',
+        sortMode: 'incomplete' // or 'title'
+      };
+
+      function uid(prefix='id') {
+        return prefix + '_' + Math.random().toString(16).slice(2) + '_' + Date.now().toString(16);
+      }
+
+      function pad2(n){ return String(n).padStart(2,'0'); }
+      function todayStr() {
+        const d = new Date();
+        return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+      }
+      function dateFromStr(s){
+        const [y,m,d] = s.split('-').map(Number);
+        return new Date(y, m-1, d);
+      }
+      function fmtLong(d){
+        const dow = dayNames[d.getDay()];
+        return dow + ', ' + monthNames[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+      }
+      function ymd(d){
+        return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+      }
+      function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+      function loadTheme(){
+        const saved = localStorage.getItem(LS_THEME);
+        if(saved === 'dark') document.documentElement.classList.add('dark');
+        else if(saved === 'light') document.documentElement.classList.remove('dark');
+        else {
+          if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
+            document.documentElement.classList.add('dark');
+          }
+        }
+      }
+      function toggleTheme(){
+        const isDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem(LS_THEME, isDark ? 'dark':'light');
+      }
+
+      function defaultData(){
+        const id = uid('routine');
+        const today = todayStr();
+        return {
+          routines: {
+            [id]: {
+              id,
+              name: 'Morning routine',
+              color: '#3b82f6',
+              goal: 'all',
+              schedule: [1,2,3,4,5,6,0], // all days
+              tasks: [
+                { id: uid('task'), title: 'Drink water', type:'check', target:1, notes:'Right after waking up', order:0 },
+                { id: uid('task'), title: 'Stretch 5 minutes', type:'check', target:1, notes:'Basic warm-up', order:1 },
+                { id: uid('task'), title: 'Read 10 pages', type:'count', target:10, notes:'Any book', order:2 }
+              ],
+              history: {
+                // date: { progress: {taskId: value}, pct, success }
+              }
+            }
+          },
+          routineOrder: [id]
+        };
+      }
+
+      function loadData(){
+        try{
+          const raw = localStorage.getItem(LS_KEY);
+          if(!raw){
+            state.data = defaultData();
+            state.selectedRoutineId = state.data.routineOrder[0] || null;
+            saveData();
+            return;
+          }
+          const parsed = JSON.parse(raw);
+          if(!parsed.routines || !parsed.routineOrder){
+            state.data = defaultData();
+          } else {
+            state.data = parsed;
+          }
+          state.selectedRoutineId = state.data.routineOrder[0] || null;
+        }catch(e){
+          state.data = defaultData();
+          state.selectedRoutineId = state.data.routineOrder[0] || null;
+          saveData();
+        }
+      }
+
+      function saveData(){
+        localStorage.setItem(LS_KEY, JSON.stringify(state.data));
+      }
+
+      function showToast(title,msg){
+        const toast = $('#toast');
+        $('#toastTitle').textContent = title;
+        $('#toastMsg').textContent = msg;
+        toast.classList.remove('hidden');
+        let t = setTimeout(() => {
+          toast.classList.add('hidden');
+        }, 2500);
+        $('#toastClose').onclick = () => {
+          clearTimeout(t);
+          toast.classList.add('hidden');
+        };
+      }
+
+      function setTab(tab){
+        state.tab = tab;
+        $$('.tabBtn').forEach(btn=>{
+          const active = btn.dataset.tab === tab;
+          btn.classList.toggle('bg-white/45', active);
+          btn.classList.toggle('dark:bg-slate-900/45', active);
+          btn.classList.toggle('text-slate-900', active);
+          btn.classList.toggle('dark:text-slate-100', active);
+          btn.classList.toggle('bg-white/25', !active);
+          btn.classList.toggle('dark:bg-slate-900/25', !active);
+          btn.classList.toggle('text-slate-900/70', !active);
+          btn.classList.toggle('dark:text-slate-100/70', !active);
+        });
+        $$('.tabPanel').forEach(p=>{
+          p.classList.toggle('hidden', p.id !== 'tab-' + tab);
+        });
+        renderAll();
+      }
+
+      function currentRoutine(){
+        if(!state.selectedRoutineId) return null;
+        return state.data.routines[state.selectedRoutineId] || null;
+      }
+
+      function ensureCalendarInit(){
+        const d = new Date();
+        if(state.calendar.year == null){
+          state.calendar.year = d.getFullYear();
+          state.calendar.month = d.getMonth();
+          state.calendar.selectedDate = todayStr();
+        }
+      }
+
+      function renderHeader(){
+        const today = new Date();
+        $('#todayLabel').textContent = fmtLong(today);
+        const r = currentRoutine();
+        const pill = $('#selectedRoutinePill');
+        if(!r){
+          pill.classList.add('hidden');
+          pill.textContent = '';
+          return;
+        }
+        pill.classList.remove('hidden');
+        pill.textContent = r.name;
+        pill.style.borderColor = r.color + '40';
+      }
+
+      function renderRoutineSidebar(){
+        const list = $('#routineList');
+        const listM = $('#routineListMobile');
+        const search = state.search.toLowerCase();
+
+        const makeItem = (r) => {
+          const btn = document.createElement('button');
+          btn.className = 'w-full mb-2 last:mb-0 btn text-left rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 px-3 py-3 flex items-center gap-3 focus-ring';
+          const active = r.id === state.selectedRoutineId;
+          if(active){
+            btn.classList.add('ring-2','ring-blue-500/60');
+          }
+          btn.innerHTML = `
+            <div class="h-9 w-9 flex-shrink-0 rounded-xl" style="background:${r.color};"></div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <div class="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">${r.name}</div>
+                <div class="text-[10px] px-2 py-0.5 rounded-full bg-slate-900/5 dark:bg-white/5 text-slate-700/70 dark:text-slate-300/70">${r.tasks.length} tasks</div>
+              </div>
+              <div class="mt-0.5 text-[11px] text-slate-700/70 dark:text-slate-300/70 truncate">
+                Goal: ${r.goal === 'all' ? 'Complete all tasks' : 'Do at least one task'}
+              </div>
+            </div>
+          `;
+          btn.onclick = () => {
+            state.selectedRoutineId = r.id;
+            renderAll();
+            $('#drawerOverlay').classList.add('hidden');
+          };
+          return btn;
+        };
+
+        list.innerHTML = '';
+        listM.innerHTML = '';
+
+        state.data.routineOrder
+          .map(id => state.data.routines[id])
+          .filter(Boolean)
+          .filter(r => !search || r.name.toLowerCase().includes(search))
+          .forEach(r => {
+            list.appendChild(makeItem(r));
+            listM.appendChild(makeItem(r));
+          });
+
+        if(state.data.routineOrder.length === 0){
+          const div = document.createElement('div');
+          div.className = 'px-3 pb-4 text-xs text-slate-700/70 dark:text-slate-300/70';
+          div.textContent = 'No routines yet. Add one to get started.';
+          list.appendChild(div);
+          const div2 = div.cloneNode(true);
+          listM.appendChild(div2);
+        }
+      }
+
+      function renderScheduleButtons(){
+        const wrap = $('#scheduleBtns');
+        wrap.innerHTML = '';
+        const r = currentRoutine();
+        const selected = new Set(r ? r.schedule : []);
+        const labels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        labels.forEach((lbl, idx)=>{
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn h-8 px-3 rounded-full text-xs font-semibold subtle-border bg-white/40 dark:bg-slate-900/40 text-slate-800 dark:text-slate-200';
+          if(selected.has(idx)){
+            btn.classList.add('bg-blue-500/20','border-blue-500/60','text-blue-700','dark:text-blue-200');
+          }
+          btn.textContent = lbl;
+          btn.onclick = () => {
+            if(selected.has(idx)) selected.delete(idx);
+            else selected.add(idx);
+            r.schedule = Array.from(selected).sort();
+            renderScheduleButtons();
+            saveData();
+          };
+          wrap.appendChild(btn);
+        });
+      }
+
+      function computeTodayStats(){
+        const r = currentRoutine();
+        if(!r) return {pct:0, done:0, total:0, doneToday:0};
+        const today = todayStr();
+        const hist = r.history[today] || null;
+        const tasks = r.tasks;
+        if(tasks.length === 0) return {pct:0, done:0, total:0, doneToday:0};
+        let done = 0;
+        let doneCountUnits = 0;
+        tasks.forEach(t=>{
+          let val = 0;
+          if(hist && hist.progress && t.id in hist.progress){
+            val = hist.progress[t.id];
+          }
+          if(t.type === 'check'){
+            if(val >= 1) done++;
+            if(val >= 1) doneCountUnits++;
+          } else {
+            if(val >= t.target) done++;
+            doneCountUnits += clamp(val,0,t.target);
+          }
+        });
+        const pct = Math.round((done / tasks.length) * 100);
+        return {pct, done, total: tasks.length, doneToday: doneCountUnits};
+      }
+
+      function computeStreak(r){
+        if(!r) return {current:0, best:0};
+        const dates = Object.keys(r.history || {}).sort();
+        if(dates.length === 0) return {current:0, best:0};
+
+        const today = todayStr();
+        let current = 0;
+        let best = 0;
+
+        // success defined by hist.success flag
+        const isScheduled = (dateStr) => {
+          const d = dateFromStr(dateStr);
+          const dow = d.getDay();
+          return r.schedule.includes(dow);
+        };
+
+        // compute best streak overall
+        let tmp = 0;
+        for(const date of dates){
+          const h = r.history[date];
+          const success = h && h.success;
+          if(success && isScheduled(date)){
+            tmp++;
+            best = Math.max(best, tmp);
+          } else if(isScheduled(date)) {
+            tmp = 0;
+          }
+        }
+
+        // compute current streak backwards from today
+        let d = dateFromStr(today);
+        while(true){
+          const ds = ymd(d);
+          const h = r.history[ds];
+          if(!isScheduled(ds)){
+            d.setDate(d.getDate() - 1);
+            continue;
+          }
+          if(h && h.success){
+            current++;
+            d.setDate(d.getDate() - 1);
+          } else {
+            break;
+          }
+        }
+
+        return {current, best};
+      }
+
+      function recomputeHistoryForDate(r, dateStr){
+        if(!r) return;
+        const tasks = r.tasks;
+        const hist = r.history[dateStr] || {progress:{}};
+        const prog = hist.progress || {};
+        let done = 0;
+        tasks.forEach(t=>{
+          const val = prog[t.id] || 0;
+          if(t.type === 'check'){
+            if(val >= 1) done++;
+          } else {
+            if(val >= t.target) done++;
+          }
+        });
+        const pct = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+        let success = false;
+        if(r.goal === 'all'){
+          success = tasks.length > 0 && done === tasks.length;
+        } else {
+          success = done > 0;
+        }
+        r.history[dateStr] = {
+          progress: prog,
+          pct,
+          success
+        };
+      }
+
+      function renderToday(){
+        const r = currentRoutine();
+        $('#routineTitle').textContent = r ? r.name : 'No routine selected';
+        if(!r){
+          $('#routineMeta').textContent = '';
+          $('#progressPct').textContent = '0%';
+          $('#progressCount').textContent = '0/0 tasks';
+          $('#progressBar').style.width = '0%';
+          $('#scheduleHint').textContent = '';
+          $('#streakDays').textContent = '0';
+          $('#bestStreak').textContent = 'Best: 0';
+          $('#taskList').innerHTML = '';
+          $('#emptyState').classList.remove('hidden');
+          return;
+        }
+
+        const today = new Date();
+        const dow = today.getDay();
+        const scheduled = r.schedule.includes(dow);
+        $('#routineMeta').textContent = (scheduled ? 'Active today · ' : 'Not scheduled today · ') + r.tasks.length + ' tasks';
+
+        const stats = computeTodayStats();
+        $('#progressPct').textContent = stats.pct + '%';
+        $('#progressCount').textContent = stats.done + '/' + stats.total + ' tasks';
+        $('#progressBar').style.width = stats.pct + '%';
+        $('#scheduleHint').textContent = scheduled ? '' : 'Today is not in this routine schedule.';
+
+        const streak = computeStreak(r);
+        $('#streakDays').textContent = streak.current;
+        $('#bestStreak').textContent = 'Best: ' + streak.best;
+
+        const list = $('#taskList');
+        list.innerHTML = '';
+        const histToday = (r.history[todayStr()] || {progress:{}}).progress || {};
+
+        if(r.tasks.length === 0){
+          $('#emptyState').classList.remove('hidden');
+          return;
+        }
+        $('#emptyState').classList.add('hidden');
+
+        let tasks = [...r.tasks];
+        if(state.sortMode === 'incomplete'){
+          tasks.sort((a,b)=>{
+            const av = histToday[a.id] || 0;
+            const bv = histToday[b.id] || 0;
+            const aDone = a.type === 'check' ? av >= 1 : av >= a.target;
+            const bDone = b.type === 'check' ? bv >= 1 : bv >= b.target;
+            if(aDone === bDone) return a.title.localeCompare(b.title);
+            return aDone ? 1 : -1;
+          });
+        } else if(state.sortMode === 'title'){
+          tasks.sort((a,b)=> a.title.localeCompare(b.title));
+        } else {
+          tasks.sort((a,b)=> (a.order||0) - (b.order||0));
+        }
+
+        tasks.forEach(t=>{
+          const row = document.createElement('div');
+          row.className = 'mb-2 last:mb-0 rounded-2xl subtle-border bg-white/35 dark:bg-slate-900/35 px-3 py-3 flex items-start gap-3';
+
+          const progressVal = histToday[t.id] || 0;
+          const done = t.type === 'check' ? progressVal >= 1 : progressVal >= t.target;
+
+          const left = document.createElement('div');
+          left.className = 'pt-0.5';
+          if(t.type === 'check'){
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.className = 'nice';
+            cb.checked = done;
+            cb.onchange = () => {
+              const today = todayStr();
+              const h = r.history[today] || {progress:{}};
+              h.progress = h.progress || {};
+              h.progress[t.id] = cb.checked ? 1 : 0;
+              r.history[today] = h;
+              recomputeHistoryForDate(r, today);
+              saveData();
+              renderAll();
+            };
+            left.appendChild(cb);
+          } else {
+            const wrap = document.createElement('div');
+            wrap.className = 'flex items-center gap-1';
+            const minus = document.createElement('button');
+            minus.type = 'button';
+            minus.className = 'btn h-7 w-7 rounded-lg subtle-border bg-white/50 dark:bg-slate-900/50 text-xs';
+            minus.textContent = '-';
+            const plus = document.createElement('button');
+            plus.type = 'button';
+            plus.className = 'btn h-7 w-7 rounded-lg subtle-border bg-white/50 dark:bg-slate-900/50 text-xs';
+            plus.textContent = '+';
+            const label = document.createElement('div');
+            label.className = 'text-xs font-semibold text-slate-800 dark:text-slate-200';
+            label.textContent = progressVal + '/' + t.target;
+
+            const update = (delta) => {
+              const today = todayStr();
+              const h = r.history[today] || {progress:{}};
+              h.progress = h.progress || {};
+              let v = h.progress[t.id] || 0;
+              v = clamp(v + delta, 0, t.target);
+              h.progress[t.id] = v;
+              r.history[today] = h;
+              recomputeHistoryForDate(r, today);
+              saveData();
+              renderAll();
+            };
+
+            minus.onclick = ()=> update(-1);
+            plus.onclick = ()=> update(1);
+
+            wrap.appendChild(minus);
+            wrap.appendChild(label);
+            wrap.appendChild(plus);
+            left.appendChild(wrap);
+          }
+
+          const mid = document.createElement('div');
+          mid.className = 'flex-1 min-w-0';
+          const title = document.createElement('div');
+          title.className = 'text-sm font-semibold text-slate-900 dark:text-slate-100 truncate';
+          if(done) title.classList.add('line-through','opacity-70');
+          title.textContent = t.title;
+          const meta = document.createElement('div');
+          meta.className = 'mt-0.5 text-[11px] text-slate-700/70 dark:text-slate-300/70';
+          let metaTxt = t.type === 'check' ? 'Checkbox' : ('Counter to ' + t.target);
+          if(t.notes) metaTxt += ' · ' + t.notes;
+          meta.textContent = metaTxt;
+          mid.appendChild(title);
+          mid.appendChild(meta);
+
+          const right = document.createElement('div');
+          right.className = 'flex flex-col items-end gap-1';
+          const editBtn = document.createElement('button');
+          editBtn.className = 'btn h-8 px-2 rounded-xl subtle-border bg-white/40 dark:bg-slate-900/40 text-[11px] text-slate-800 dark:text-slate-200';
+          editBtn.textContent = 'Edit';
+          editBtn.onclick = () => openTaskModal(t.id);
+          right.appendChild(editBtn);
+
+          row.appendChild(left);
+          row.appendChild(mid);
+          row.appendChild(right);
+
+          list.appendChild(row);
+        });
+      }
+
+      function renderCalendar(){
+        ensureCalendarInit();
+        const r = currentRoutine();
+        const label = $('#calLabel');
+        const grid = $('#calendarGrid');
+        const {year, month} = state.calendar;
+        label.textContent = monthNames[month] + ' ' + year;
+        grid.innerHTML = '';
+
+        if(!r){
+          const info = document.createElement('div');
+          info.className = 'text-xs text-slate-700/70 dark:text-slate-300/70';
+          info.textContent = 'Select or create a routine to see the calendar.';
+          grid.appendChild(info);
+          return;
+        }
+
+        const first = new Date(year, month, 1);
+        const startDow = (first.getDay() + 6) % 7; // convert Sun=0 to Mon=0
+        const daysInMonth = new Date(year, month+1, 0).getDate();
+        const today = todayStr();
+
+        const getPctForDate = (ds) => {
+          const h = r.history[ds];
+          return h ? (h.pct || 0) : 0;
+        };
+
+        const cells = [];
+        for(let i=0;i<42;i++){
+          const cell = document.createElement('button');
+          cell.type = 'button';
+          cell.className = 'h-10 rounded-xl subtle-border text-xs flex flex-col items-center justify-center gap-0.5';
+          const dayNum = i - startDow + 1;
+          if(i < startDow || dayNum > daysInMonth){
+            cell.classList.add('opacity-0','pointer-events-none');
+          } else {
+            const d = dayNum;
+            const ds = year + '-' + pad2(month+1) + '-' + pad2(d);
+            const pct = getPctForDate(ds);
+
+            const dot = document.createElement('div');
+            dot.className = 'h-5 w-5 rounded-lg';
+            if(pct === 0){
+              dot.classList.add('bg-slate-900/5','dark:bg-white/5');
+            } else if(pct < 100){
+              dot.classList.add('bg-blue-500/35');
+            } else {
+              dot.classList.add('bg-gradient-to-br','from-blue-500','to-violet-500');
+            }
+
+            const num = document.createElement('div');
+            num.textContent = d;
+            num.className = 'text-[11px] text-slate-800 dark:text-slate-200';
+
+            if(ds === today){
+              cell.classList.add('ring-2','ring-blue-500/70');
+            }
+
+            if(state.calendar.selectedDate === ds){
+              cell.classList.add('border-blue-500/70');
+            }
+
+            cell.appendChild(dot);
+            cell.appendChild(num);
+
+            cell.onclick = () => {
+              state.calendar.selectedDate = ds;
+              renderCalendar();
+            };
+          }
+          grid.appendChild(cell);
+          cells.push(cell);
+        }
+
+        renderCalendarSummary();
+      }
+
+      function renderCalendarSummary(){
+        const r = currentRoutine();
+        const {year,month} = state.calendar;
+        if(!r){
+          $('#dayDetail').textContent = 'Pick a day';
+          $('#dayDetailSub').textContent = '';
+          $('#monthRate').textContent = '0%';
+          $('#monthRateSub').textContent = 'avg daily completion';
+          return;
+        }
+        const ds = state.calendar.selectedDate;
+        if(!ds){
+          $('#dayDetail').textContent = 'Pick a day';
+          $('#dayDetailSub').textContent = '';
+        } else {
+          const d = dateFromStr(ds);
+          $('#dayDetail').textContent = fmtLong(d);
+          const h = r.history[ds];
+          if(!h || r.tasks.length===0){
+            $('#dayDetailSub').textContent = 'No data for this day.';
+          } else {
+            const done = Math.round(h.pct / 100 * r.tasks.length);
+            $('#dayDetailSub').textContent = 'Completion: ' + h.pct + '% · ' + done + '/' + r.tasks.length + ' tasks';
+          }
+        }
+
+        let pctSum = 0;
+        let count = 0;
+        const daysInMonth = new Date(year, month+1, 0).getDate();
+        for(let d=1; d<=daysInMonth; d++){
+          const ds2 = year + '-' + pad2(month+1) + '-' + pad2(d);
+          const h = r.history[ds2];
+          if(h){
+            pctSum += h.pct || 0;
+            count++;
+          }
+        }
+        const avg = count ? Math.round(pctSum / count) : 0;
+        $('#monthRate').textContent = avg + '%';
+        $('#monthRateSub').textContent = 'avg daily completion';
+      }
+
+      function renderInsights(){
+        const r = currentRoutine();
+        if(!r){
+          $('#weekRate').textContent = '0%';
+          $('#doneToday').textContent = '0';
+          $('#doneTodaySub').textContent = 'across this routine';
+          $('#trendBars').innerHTML = '';
+          $('#tipBox').textContent = '';
+          return;
+        }
+        const today = dateFromStr(todayStr());
+        let sumPct = 0;
+        let days = 0;
+        const trend = [];
+        for(let i=6;i>=0;i--){
+          const d = new Date(today);
+          d.setDate(d.getDate() - i);
+          const ds = ymd(d);
+          const h = r.history[ds];
+          const pct = h ? (h.pct || 0) : 0;
+          sumPct += pct;
+          days++;
+          trend.push(pct);
+        }
+        const avg = days ? Math.round(sumPct/days) : 0;
+        $('#weekRate').textContent = avg + '%';
+
+        const stats = computeTodayStats();
+        $('#doneToday').textContent = stats.done;
+        $('#doneTodaySub').textContent = 'of ' + stats.total + ' tasks';
+
+        const trendWrap = $('#trendBars');
+        trendWrap.innerHTML = '';
+        const maxPct = Math.max(10, ...trend);
+        trend.forEach(p=>{
+          const bar = document.createElement('div');
+          bar.className = 'flex-1 rounded-full bg-slate-900/10 dark:bg-white/10 overflow-hidden';
+          const inner = document.createElement('div');
+          inner.className = 'w-full rounded-full bg-gradient-to-br from-blue-500 to-violet-500';
+          const h = Math.max(2, Math.round((p / maxPct) * 32));
+          inner.style.height = h + 'px';
+          bar.appendChild(inner);
+          trendWrap.appendChild(bar);
+        });
+      }
+
+      const tips = [
+        'Attach a new habit to an existing one, like reading after brushing teeth.',
+        'Keep tasks so small that you can do them even on a bad day.',
+        'Protect your environment: remove distractions from your routine time.',
+        'Track streaks, but do not chase perfection—aim to never miss twice.',
+        'Start with fewer tasks and only add more after a week of success.',
+        'Set a clear time window for the routine, like 7–8 AM every day.',
+        'Celebrate small wins by reviewing what you did at the end of the week.'
+      ];
+
+      function randomTip(){
+        const idx = Math.floor(Math.random() * tips.length);
+        $('#tipBox').textContent = tips[idx];
+      }
+
+      function openModal(type, editId=null){
+        state.modal.type = type;
+        state.modal.editId = editId;
+        $('#modalOverlay').classList.remove('hidden');
+        if(type === 'routine'){
+          $('#routineModal').classList.remove('hidden');
+          $('#taskModal').classList.add('hidden');
+          const r = editId ? state.data.routines[editId] : null;
+          $('#routineModalTitle').textContent = r ? 'Edit routine' : 'New routine';
+          $('#routineName').value = r ? r.name : '';
+          $('#routineColor').value = r ? r.color : '#3b82f6';
+          $('#routineGoal').value = r ? r.goal : 'all';
+          $('#deleteRoutineBtn').classList.toggle('hidden', !r);
+          renderScheduleButtons();
+        } else if(type === 'task'){
+          $('#taskModal').classList.remove('hidden');
+          $('#routineModal').classList.add('hidden');
+          const r = currentRoutine();
+          const task = r && editId ? r.tasks.find(t=>t.id===editId) : null;
+          $('#taskModalTitle').textContent = task ? 'Edit task' : 'New task';
+          $('#taskTitle').value = task ? task.title : '';
+          $('#taskType').value = task ? task.type : 'check';
+          $('#taskTarget').value = task && task.type==='count' ? task.target : 1;
+          $('#taskNotes').value = task ? (task.notes || '') : '';
+          $('#deleteTaskBtn').classList.toggle('hidden', !task);
+        }
+      }
+
+      function closeModal(){
+        state.modal.type = null;
+        state.modal.editId = null;
+        $('#modalOverlay').classList.add('hidden');
+      }
+
+      function openRoutineModal(editId=null){
+        if(editId){
+          state.modal.editId = editId;
+        } else {
+          state.modal.editId = null;
+        }
+        openModal('routine', state.modal.editId);
+      }
+
+      function openTaskModal(editId=null){
+        openModal('task', editId);
+      }
+
+      function handleRoutineForm(e){
+        e.preventDefault();
+        const name = $('#routineName').value.trim();
+        const color = $('#routineColor').value || '#3b82f6';
+        const goal = $('#routineGoal').value || 'all';
+        if(!name) return;
+        if(state.modal.editId){
+          const r = state.data.routines[state.modal.editId];
+          if(r){
+            r.name = name;
+            r.color = color;
+            r.goal = goal;
+          }
+        } else {
+          const id = uid('routine');
+          state.data.routines[id] = {
+            id,
+            name,
+            color,
+            goal,
+            schedule: [1,2,3,4,5,6,0],
+            tasks: [],
+            history: {}
+          };
+          state.data.routineOrder.push(id);
+          state.selectedRoutineId = id;
+        }
+        saveData();
+        closeModal();
+        renderAll();
+        showToast('Routine saved','Your routine changes were saved.');
+      }
+
+      function handleDeleteRoutine(){
+        const id = state.modal.editId;
+        if(!id) return;
+        if(!confirm('Delete this routine and all its history?')) return;
+        delete state.data.routines[id];
+        state.data.routineOrder = state.data.routineOrder.filter(rid=>rid!==id);
+        if(state.selectedRoutineId === id){
+          state.selectedRoutineId = state.data.routineOrder[0] || null;
+        }
+        saveData();
+        closeModal();
+        renderAll();
+        showToast('Routine deleted','The routine was removed.');
+      }
+
+      function handleTaskForm(e){
+        e.preventDefault();
+        const r = currentRoutine();
+        if(!r) return;
+        const title = $('#taskTitle').value.trim();
+        const type = $('#taskType').value;
+        const targetRaw = parseInt($('#taskTarget').value || '1',10);
+        const target = isNaN(targetRaw) || targetRaw <= 0 ? 1 : targetRaw;
+        const notes = $('#taskNotes').value.trim();
+        if(!title) return;
+
+        if(state.modal.editId){
+          const t = r.tasks.find(t=>t.id===state.modal.editId);
+          if(t){
+            t.title = title;
+            t.type = type;
+            t.target = type==='count' ? target : 1;
+            t.notes = notes;
+          }
+        } else {
+          const order = r.tasks.length ? Math.max(...r.tasks.map(t=>t.order||0))+1 : 0;
+          r.tasks.push({
+            id: uid('task'),
+            title,
+            type,
+            target: type==='count' ? target : 1,
+            notes,
+            order
+          });
+        }
+
+        const today = todayStr();
+        if(r.history[today]){
+          recomputeHistoryForDate(r, today);
+        }
+
+        saveData();
+        closeModal();
+        renderAll();
+        showToast('Task saved','Your task changes were saved.');
+      }
+
+      function handleDeleteTask(){
+        const r = currentRoutine();
+        if(!r || !state.modal.editId) return;
+        if(!confirm('Delete this task from the routine?')) return;
+        const id = state.modal.editId;
+        r.tasks = r.tasks.filter(t=>t.id!==id);
+        Object.keys(r.history).forEach(date=>{
+          if(r.history[date].progress && id in r.history[date].progress){
+            delete r.history[date].progress[id];
+            recomputeHistoryForDate(r, date);
+          }
+        });
+        saveData();
+        closeModal();
+        renderAll();
+        showToast('Task deleted','The task was removed.');
+      }
+
+      function markAllToday(){
+        const r = currentRoutine();
+        if(!r) return;
+        const today = todayStr();
+        const h = r.history[today] || {progress:{}};
+        h.progress = h.progress || {};
+        r.tasks.forEach(t=>{
+          if(t.type === 'check'){
+            h.progress[t.id] = 1;
+          } else {
+            h.progress[t.id] = t.target;
+          }
+        });
+        r.history[today] = h;
+        recomputeHistoryForDate(r, today);
+        saveData();
+        renderAll();
+        showToast('All done','Marked all tasks as completed for today.');
+      }
+
+      function resetToday(){
+        const r = currentRoutine();
+        if(!r) return;
+        const today = todayStr();
+        if(r.history[today]){
+          delete r.history[today];
+        }
+        saveData();
+        renderAll();
+        showToast('Reset','Cleared today’s progress.');
+      }
+
+      function exportData(){
+        const data = state.data;
+        const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'routine-tracker-data.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function handleImport(file){
+        const reader = new FileReader();
+        reader.onload = e => {
+          try{
+            const parsed = JSON.parse(e.target.result);
+            if(!parsed.routines || !parsed.routineOrder) throw new Error('Invalid data');
+            state.data = parsed;
+            state.selectedRoutineId = state.data.routineOrder[0] || null;
+            saveData();
+            renderAll();
+            showToast('Imported','Data imported successfully.');
+          }catch(err){
+            alert('Import failed: ' + err.message);
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function toggleSort(){
+        if(state.sortMode === 'incomplete') state.sortMode = 'title';
+        else if(state.sortMode === 'title') state.sortMode = 'incomplete';
+        $('#sortLabel').textContent = state.sortMode === 'incomplete'
+          ? 'Sort: Incomplete first'
+          : 'Sort: Title A–Z';
+        renderToday();
+      }
+
+      function renderAll(){
+        renderHeader();
+        renderRoutineSidebar();
+        renderToday();
+        renderCalendar();
+        renderInsights();
+      }
+
+      function init(){
+        loadTheme();
+        loadData();
+        ensureCalendarInit();
+        renderAll();
+
+        $('#themeBtn').onclick = toggleTheme;
+
+        $$('.tabBtn').forEach(btn=>{
+          btn.onclick = ()=> setTab(btn.dataset.tab);
+        });
+
+        $('#addRoutineBtnDesktop').onclick = ()=> openRoutineModal(null);
+        $('#addRoutineBtnMobile').onclick = ()=> openRoutineModal(null);
+        $('#editRoutineBtn').onclick = ()=> {
+          const r = currentRoutine();
+          if(r) openRoutineModal(r.id);
+        };
+
+        $('#routineSearch').addEventListener('input', e=>{
+          state.search = e.target.value;
+          renderRoutineSidebar();
+        });
+        $('#routineSearchMobile').addEventListener('input', e=>{
+          state.search = e.target.value;
+          renderRoutineSidebar();
+        });
+
+        $('#routineForm').addEventListener('submit', handleRoutineForm);
+        $('#deleteRoutineBtn').onclick = handleDeleteRoutine;
+
+        $('#taskForm').addEventListener('submit', handleTaskForm);
+        $('#deleteTaskBtn').onclick = handleDeleteTask;
+
+        $('[data-close-modal]').addEventListener('click', closeModal);
+        $$('#modalOverlay [data-close-modal]').forEach(btn=>{
+          btn.addEventListener('click', closeModal);
+        });
+        $('#modalOverlay').addEventListener('click', e=>{
+          if(e.target.id === 'modalOverlay') closeModal();
+        });
+
+        $('#addTaskBtn').onclick = ()=> openTaskModal(null);
+        $('#emptyAddTaskBtn').onclick = ()=> openTaskModal(null);
+        $('#fabAdd').onclick = ()=> openTaskModal(null);
+
+        $('#markAllBtn').onclick = markAllToday;
+        $('#resetTodayBtn').onclick = resetToday;
+
+        $('#exportBtn').onclick = exportData;
+        $('#exportBtn2').onclick = exportData;
+        $('#importFile').addEventListener('change', e=>{
+          const file = e.target.files[0];
+          if(file) handleImport(file);
+          e.target.value = '';
+        });
+        $('#importFile2').addEventListener('change', e=>{
+          const file = e.target.files[0];
+          if(file) handleImport(file);
+          e.target.value = '';
+        });
+
+        $('#openDrawerBtn').onclick = ()=> $('#drawerOverlay').classList.remove('hidden');
+        $('#closeDrawerBtn').onclick = ()=> $('#drawerOverlay').classList.add('hidden');
+        $('#drawerOverlay').addEventListener('click', e=>{
+          if(e.target.id === 'drawerOverlay') $('#drawerOverlay').classList.add('hidden');
+        });
+
+        $('#calPrev').onclick = ()=>{
+          state.calendar.month--;
+          if(state.calendar.month < 0){
+            state.calendar.month = 11;
+            state.calendar.year--;
+          }
+          renderCalendar();
+        };
+        $('#calNext').onclick = ()=>{
+          state.calendar.month++;
+          if(state.calendar.month > 11){
+            state.calendar.month = 0;
+            state.calendar.year++;
+          }
+          renderCalendar();
+        };
+
+        $('#nudgeBtn').onclick = randomTip;
+        $('#sortBtn').onclick = toggleSort;
+
+        randomTip();
+      }
+
+      document.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
+  <script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js')
+      .then(function() { console.log('✅ PWA Offline Ready!'); })
+      .catch(function(err) { console.log('SW error:', err); });
+  });
+}
+
+// Auto install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+});
+</script>
+</body>
+</html>
